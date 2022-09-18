@@ -1,20 +1,27 @@
 import asyncio
+import logging
 import os
 import sys
 from asyncio import StreamReader, StreamWriter
 
 from arg_parser import get_parser
 
+logger = logging.getLogger(__file__)
+
 
 async def read_and_print_line(reader: StreamReader) -> None:
     data = await reader.readline()
-    print(f"{data.decode()}\b")
+    decoded_data = f"{data.decode()}\b"
+    logger.debug(decoded_data)
+    print(decoded_data)
 
 
 async def user_authorization(reader: StreamReader, writer: StreamWriter, token: str = "") -> None:
     await read_and_print_line(reader)
     if token:
-        print(f"the current session will use the preset token: {token}")
+        msg = f"the current session will use the preset token: {token}"
+        print(msg)
+        logger.debug(msg)
         writer.write(f"{token}\n".encode())
         await writer.drain()
     else:
@@ -40,6 +47,7 @@ async def chat_sender(host: str, port: int, token: str):
 if __name__ == "__main__":
     parser = get_parser()
     args = parser.parse_args()
+    logging.basicConfig(format="%(levelname)s:sender:%(message)s", level=logging.DEBUG)
     history = os.environ.get("HISTORY") or args.history
     host = os.environ.get("HOST") or args.host
     port = os.environ.get("PORT_SENDER") or args.port_sender

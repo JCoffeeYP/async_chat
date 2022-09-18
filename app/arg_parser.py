@@ -32,7 +32,7 @@ def get_parser():
     parser.add_argument(
         "--token",
         type=str,
-        default="",
+        default="119c8030-372b-11ed-8c47-0242ac110002",
         help="chat token",
     )
 
