@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import os
 import sys
@@ -16,26 +17,45 @@ async def read_and_print_line(reader: StreamReader) -> None:
     print(decoded_data)
 
 
-async def user_authorization(reader: StreamReader, writer: StreamWriter, token: str = "") -> None:
+async def check_token(reader: StreamReader) -> bool:
+    data = await reader.readline()
+    json_data = json.loads(data)
+    if json_data:
+        decoded_data = f"{data.decode()}\b"
+        logger.debug(decoded_data)
+        print(decoded_data)
+
+        return True
+
+    wrong_token_msg = "Неизвестный токен. Проверьте его или зарегистрируйте заново."
+    logger.debug(wrong_token_msg)
+    print(wrong_token_msg)
+
+    return False
+
+
+async def user_authorization(reader: StreamReader, writer: StreamWriter) -> None:
     await read_and_print_line(reader)
-    if token:
-        msg = f"the current session will use the preset token: {token}"
-        print(msg)
-        logger.debug(msg)
-        writer.write(f"{token}\n".encode())
-        await writer.drain()
-    else:
-        writer.write("\n".encode())
+
+    token = f"{input()}\n"
+    writer.write(token.encode())
+    await writer.drain()
+    logger.debug(f"{token}\b")
+
+    if not await check_token(reader):
         await read_and_print_line(reader)
+
         username = f"{input()}\n"
         writer.write(username.encode())
         await writer.drain()
-    await read_and_print_line(reader)
+        logger.debug(f"{username}\b")
+
+        await read_and_print_line(reader)
 
 
-async def chat_sender(host: str, port: int, token: str):
+async def chat_sender(host: str, port: int):
     reader, writer = await asyncio.open_connection(host, port)
-    await user_authorization(reader, writer, token)
+    await user_authorization(reader, writer)
 
     while True:
         await read_and_print_line(reader)
@@ -51,9 +71,9 @@ if __name__ == "__main__":
     history = os.environ.get("HISTORY") or args.history
     host = os.environ.get("HOST") or args.host
     port = os.environ.get("PORT_SENDER") or args.port_sender
-    token = os.environ.get("TOKEN") or args.token
+
     try:
-        asyncio.run(chat_sender(host=host, port=port, token=token))
+        asyncio.run(chat_sender(host=host, port=port))
     except KeyboardInterrupt:
         try:
             sys.exit(0)
